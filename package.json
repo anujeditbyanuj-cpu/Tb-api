@@ -1,0 +1,9 @@
+{
+  "name": "teraboxfast",
+  "version": "1.0.0",
+  "description": "TeraBox Fast Downloader",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  }
+}

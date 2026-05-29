@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeraBox Fast - Download & Stream Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #1a6cff;
+  --blue-dark: #0d4ed8;
+  --accent: #00d4ff;
+  --green: #00e676;
+  --red: #ff4757;
+  --bg: #050d1a;
+  --card: #0a1628;
+  --card2: #0f1f3d;
+  --border: #1a2f55;
+  --text: #e8edf8;
+  --muted: #7b90b8;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(26,108,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,108,255,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none; z-index:0;
+}
+.blob { position:fixed; border-radius:50%; filter:blur(120px); pointer-events:none; z-index:0; }
+.blob1 { width:500px;height:500px; background:radial-gradient(circle,#1a6cff1a,transparent 70%); top:-150px;left:-150px; }
+.blob2 { width:400px;height:400px; background:radial-gradient(circle,#00d4ff12,transparent 70%); bottom:-100px;right:-100px; }
+
+/* NAV */
+nav {
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 0 6%; height:64px;
+  background:rgba(5,13,26,0.88);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.logo {
+  font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem;
+  display:flex; align-items:center; gap:9px; color:var(--text); text-decoration:none;
+}
+.logo-icon {
+  width:34px;height:34px; border-radius:9px;
+  background:linear-gradient(135deg,var(--blue),var(--accent));
+  display:flex; align-items:center; justify-content:center; font-size:.9rem;
+}
+.logo em { color:var(--accent); font-style:normal; }
+nav ul { display:flex; gap:2rem; list-style:none; }
+nav a { color:var(--muted); text-decoration:none; font-size:.88rem; font-weight:500; transition:color .2s; }
+nav a:hover { color:var(--text); }
+@media(max-width:600px){ nav ul{display:none;} }
+
+/* HERO */
+.hero { position:relative; z-index:1; text-align:center; padding:80px 5% 50px; }
+.badge {
+  display:inline-flex; align-items:center; gap:7px;
+  background:rgba(26,108,255,0.1); border:1px solid rgba(26,108,255,0.25);
+  border-radius:100px; padding:5px 14px; font-size:.78rem; color:var(--accent);
+  margin-bottom:24px;
+}
+.dot { width:7px;height:7px; background:var(--green); border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+h1 {
+  font-family:'Syne',sans-serif; font-size:clamp(2rem,5vw,3.8rem); font-weight:800;
+  line-height:1.15; margin-bottom:18px;
+}
+h1 .hl {
+  background:linear-gradient(90deg,var(--blue),var(--accent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.sub { color:var(--muted); font-size:1rem; max-width:500px; margin:0 auto 40px; line-height:1.7; }
+
+/* INPUT */
+.input-wrap {
+  max-width:660px; margin:0 auto;
+  background:var(--card); border:1.5px solid var(--border); border-radius:16px;
+  padding:6px; display:flex; transition:border-color .2s, box-shadow .2s;
+}
+.input-wrap:focus-within { border-color:var(--blue); box-shadow:0 0 0 4px rgba(26,108,255,.1); }
+.input-wrap input {
+  flex:1; background:transparent; border:none; outline:none;
+  color:var(--text); font-family:'DM Sans',sans-serif; font-size:.93rem; padding:12px 14px;
+}
+.input-wrap input::placeholder { color:var(--muted); }
+.go-btn {
+  background:linear-gradient(135deg,var(--blue),#0d8fff); color:#fff;
+  border:none; cursor:pointer; padding:12px 26px; border-radius:12px;
+  font-family:'DM Sans',sans-serif; font-size:.92rem; font-weight:600;
+  display:flex; align-items:center; gap:8px; white-space:nowrap;
+  transition:transform .15s, box-shadow .2s;
+}
+.go-btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(26,108,255,.4); }
+.go-btn:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+/* PROGRESS */
+.progress-bar {
+  max-width:660px; margin:12px auto 0; height:3px;
+  background:var(--border); border-radius:2px; overflow:hidden; display:none;
+}
+.progress-fill {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,var(--blue),var(--accent));
+  border-radius:2px; transition:width .4s ease;
+}
+
+/* ERROR */
+.error-box {
+  max-width:660px; margin:16px auto 0;
+  background:rgba(255,71,87,.1); border:1px solid rgba(255,71,87,.3);
+  border-radius:12px; padding:14px 18px;
+  color:#ff6b7a; font-size:.88rem; display:none;
+}
+
+/* RESULT CARD */
+.result-card {
+  max-width:660px; margin:24px auto 0;
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  overflow:hidden; display:none; animation:fadeUp .4s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.result-header {
+  background:var(--card2); padding:18px 22px;
+  display:flex; align-items:center; gap:14px;
+  border-bottom:1px solid var(--border);
+}
+.file-thumb {
+  width:54px;height:54px; border-radius:12px;
+  background:linear-gradient(135deg,#1a3a6e,var(--blue));
+  display:flex; align-items:center; justify-content:center; font-size:1.6rem; flex-shrink:0;
+}
+.file-thumb img { width:100%; height:100%; object-fit:cover; border-radius:12px; }
+.file-info h3 { font-size:.95rem; font-weight:600; margin-bottom:5px; word-break:break-all; }
+.file-info span { color:var(--muted); font-size:.8rem; }
+.badge-video {
+  margin-left:8px; background:rgba(0,212,255,.15); color:var(--accent);
+  border-radius:6px; padding:2px 8px; font-size:.72rem; font-weight:600;
+}
+
+/* ACTION BUTTONS */
+.result-actions { padding:18px 22px; display:flex; gap:12px; flex-wrap:wrap; }
+.btn-dl {
+  flex:1; min-width:140px;
+  background:linear-gradient(135deg,var(--blue),#0d8fff); color:#fff;
+  border:none; cursor:pointer; padding:13px 20px; border-radius:12px;
+  font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:600;
+  transition:transform .15s, box-shadow .2s; text-decoration:none;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn-dl:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(26,108,255,.35); }
+.btn-stream {
+  flex:1; min-width:140px;
+  background:transparent; color:var(--text);
+  border:1.5px solid var(--border); cursor:pointer; padding:13px 20px; border-radius:12px;
+  font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:500;
+  transition:border-color .2s, color .2s;
+}
+.btn-stream:hover { border-color:var(--accent); color:var(--accent); }
+
+/* VIDEO PLAYER */
+.player-wrap {
+  margin:0 22px 22px; border-radius:14px; overflow:hidden;
+  background:#000; display:none;
+}
+.player-wrap video { width:100%; max-height:400px; display:block; }
+
+/* FOOTER */
+footer {
+  position:relative; z-index:1; margin-top:80px;
+  border-top:1px solid var(--border); padding:30px 6%;
+  display:flex; justify-content:space-between; align-items:center;
+  flex-wrap:wrap; gap:12px;
+}
+footer p { color:var(--muted); font-size:.8rem; }
+.footer-logo { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; }
+.footer-logo em { color:var(--accent); font-style:normal; }
+
+/* HINT ROW */
+.hints { display:flex; gap:20px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+.hints span { color:var(--muted); font-size:.8rem; display:flex; align-items:center; gap:5px; }
+
+/* Cookie section */
+.cookie-toggle {
+  max-width:660px; margin:14px auto 0;
+  display:flex; align-items:center; gap:8px; justify-content:flex-end;
+}
+.cookie-toggle button {
+  background:transparent; border:1px solid var(--border);
+  color:var(--muted); font-family:'DM Sans',sans-serif; font-size:.8rem;
+  padding:5px 13px; border-radius:8px; cursor:pointer; transition:all .2s;
+}
+.cookie-toggle button:hover { border-color:var(--blue); color:var(--blue); }
+.cookie-box {
+  max-width:660px; margin:10px auto 0;
+  background:rgba(26,108,255,0.06); border:1px solid rgba(26,108,255,0.2);
+  border-radius:14px; padding:16px 18px; display:none;
+}
+.cookie-box label { display:block; color:var(--muted); font-size:.8rem; margin-bottom:8px; }
+.cookie-box label strong { color:var(--accent); }
+.cookie-box textarea {
+  width:100%; background:var(--card); border:1px solid var(--border);
+  border-radius:10px; color:var(--text); font-family:monospace; font-size:.78rem;
+  padding:10px 12px; resize:vertical; min-height:70px; outline:none;
+  transition:border-color .2s;
+}
+.cookie-box textarea:focus { border-color:var(--blue); }
+.cookie-box textarea::placeholder { color:var(--muted); }
+.cookie-info {
+  margin-top:10px; font-size:.76rem; color:var(--muted); line-height:1.6;
+}
+.cookie-info a { color:var(--accent); text-decoration:none; }
+.private-badge {
+  display:inline-block; background:rgba(255,165,0,0.15);
+  border:1px solid rgba(255,165,0,0.3); color:#ffaa00;
+  border-radius:6px; padding:2px 9px; font-size:.72rem; font-weight:600;
+  margin-left:8px;
+}
+</style>
+</head>
+<body>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon">⚡</div>
+    TeraBox<em>Fast</em>
+  </a>
+  <ul>
+    <li><a href="#">Home</a></li>
+    <li><a href="#">How It Works</a></li>
+    <li><a href="#">About</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <div class="badge"><div class="dot"></div> Free · No Login · Fast</div>
+  <h1>Download &amp; Stream<br><span class="hl">TeraBox Files Instantly</span></h1>
+  <p class="sub">Paste any TeraBox share link below. Get a direct download link or stream videos right here — no app, no account needed.</p>
+
+  <div class="input-wrap">
+    <input type="text" id="urlInput" placeholder="https://terabox.com/s/..." autocomplete="off" />
+    <button class="go-btn" id="goBtn" onclick="fetchFile()">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Get Link
+    </button>
+  </div>
+
+  <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="file-thumb" id="fileThumb">📄</div>
+      <div class="file-info">
+        <h3 id="fileName">—</h3>
+        <span id="fileSize">—</span>
+        <span class="badge-video" id="videoBadge" style="display:none">▶ Video</span>
+      </div>
+    </div>
+    <div class="result-actions" id="resultActions">
+      <!-- Buttons injected by JS -->
+    </div>
+    <div class="player-wrap" id="playerWrap">
+      <video id="videoEl" controls playsinline></video>
+    </div>
+  </div>
+
+  <div class="hints">
+    <span>🔒 No login needed (public links)</span>
+    <span>⚡ Direct links</span>
+    <span>📱 Works on mobile</span>
+    <span>🆓 Always free</span>
+  </div>
+
+  <!-- Cookie toggle for private links -->
+  <div class="cookie-toggle">
+    <span style="color:var(--muted);font-size:.8rem">Private link?</span>
+    <button onclick="toggleCookie()" id="cookieToggleBtn">🍪 Add Cookie</button>
+  </div>
+
+  <div class="cookie-box" id="cookieBox">
+    <label><strong>TeraBox Account Cookie</strong> — required for private links</label>
+    <textarea id="cookieInput" placeholder="PANWEB=1; csrfToken=xxxx; lang=en; ndus=xxxx; browserid=xxxx; ..."></textarea>
+    <div class="cookie-info">
+      📌 <strong>Cookie kaise milega:</strong><br>
+      1. Browser mein <a href="https://www.terabox.com" target="_blank">terabox.com</a> kholo aur login karo<br>
+      2. F12 → Application → Cookies → <code>www.terabox.com</code><br>
+      3. Saare cookies copy karo aur yahan paste karo<br>
+      <br>
+      🔒 Cookie sirf aapke browser mein save hota hai — server pe store nahi hota.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">TeraBox<em>Fast</em></div>
+  <p>Not affiliated with TeraBox Inc.</p>
+  <p>© 2024 TeraBoxFast</p>
+</footer>
+
+<script>
+const urlInput   = document.getElementById('urlInput');
+const goBtn      = document.getElementById('goBtn');
+const progressBar  = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const errorBox   = document.getElementById('errorBox');
+const resultCard = document.getElementById('resultCard');
+
+urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') fetchFile(); });
+
+// ── Cookie box toggle ──
+function toggleCookie() {
+  const box = document.getElementById('cookieBox');
+  const btn = document.getElementById('cookieToggleBtn');
+  const open = box.style.display === 'block';
+  box.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '🍪 Add Cookie' : '✕ Hide Cookie';
+}
+
+// Save cookie to localStorage so user doesn't have to re-enter
+const cookieInput = document.getElementById('cookieInput');
+cookieInput.value = localStorage.getItem('tb_cookie') || '';
+cookieInput.addEventListener('input', () => {
+  localStorage.setItem('tb_cookie', cookieInput.value.trim());
+});
+
+function showError(msg, showCookieHint = false) {
+  errorBox.innerHTML = '⚠️ ' + msg +
+    (showCookieHint ? '<br><small style="opacity:.8">👇 Neeche cookie field mein apna TeraBox cookie paste karo</small>' : '');
+  errorBox.style.display = 'block';
+  resultCard.style.display = 'none';
+  if (showCookieHint) {
+    document.getElementById('cookieBox').style.display = 'block';
+    document.getElementById('cookieToggleBtn').textContent = '✕ Hide Cookie';
+    document.getElementById('cookieBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+function hideError() { errorBox.style.display = 'none'; }
+
+function setProgress(pct) {
+  progressBar.style.display = 'block';
+  progressFill.style.width = pct + '%';
+  if (pct >= 100) setTimeout(() => {
+    progressBar.style.display = 'none';
+    progressFill.style.width = '0%';
+  }, 600);
+}
+
+const BTN_HTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Get Link`;
+
+const VALID_DOMAINS = /terabox|nephobox|1024tera|4funbox|mirrobox|momerybox|freeterabox|tibibox|terashare|teraboxurl|teraboxfree|teraboxlink|terasharefile/i;
+
+async function fetchFile() {
+  const url    = urlInput.value.trim();
+  if (!url) { urlInput.focus(); return; }
+  if (!VALID_DOMAINS.test(url)) {
+    showError('Invalid link! TeraBox ya mirror site ka link daalo.');
+    return;
+  }
+
+  const cookie = cookieInput.value.trim();
+
+  hideError();
+  resultCard.style.display = 'none';
+  goBtn.disabled = true;
+  goBtn.textContent = 'Fetching...';
+  setProgress(20);
+
+  try {
+    setProgress(50);
+
+    // Build API URL — include cookie if provided
+    let apiUrl = '/api/fetch?url=' + encodeURIComponent(url);
+    if (cookie) apiUrl += '&cookie=' + encodeURIComponent(cookie);
+
+    const res  = await fetch(apiUrl);
+    setProgress(85);
+    const data = await res.json();
+    setProgress(100);
+
+    if (!res.ok || !data.success) {
+      // Private link — prompt for cookie
+      if (data.error === 'private_link' || res.status === 401) {
+        showError('Yeh private link hai — cookie zaroori hai.', true);
+      } else {
+        showError(data.message || data.error || 'Could not fetch file info.');
+      }
+      return;
+    }
+
+    renderResult(data);
+
+  } catch (e) {
+    showError('Network error. Please check your connection.');
+  } finally {
+    goBtn.disabled = false;
+    goBtn.innerHTML = BTN_HTML;
+  }
+}
+
+let hlsInstance = null;
+
+function renderResult(data) {
+  // Thumbnail / icon
+  const thumb = document.getElementById('fileThumb');
+  if (data.thumbnail) {
+    thumb.innerHTML = `<img src="${data.thumbnail}" alt="thumb" onerror="this.parentElement.textContent='🎬'">`;
+  } else {
+    thumb.textContent = data.isVideo ? '🎬' : '📄';
+  }
+
+  document.getElementById('fileName').textContent = data.filename || 'Unknown file';
+  document.getElementById('fileSize').textContent = data.size || '';
+  document.getElementById('videoBadge').style.display = data.isVideo ? 'inline' : 'none';
+  // Show private badge if fetched via cookie
+  let privBadge = document.getElementById('privateBadge');
+  if (!privBadge) {
+    privBadge = document.createElement('span');
+    privBadge.id = 'privateBadge';
+    privBadge.className = 'private-badge';
+    privBadge.textContent = '🔒 Private';
+    document.getElementById('fileSize').after(privBadge);
+  }
+  privBadge.style.display = data.link_type === 'private' ? 'inline' : 'none';
+
+  const actions = document.getElementById('resultActions');
+  actions.innerHTML = '';
+  const playerWrap = document.getElementById('playerWrap');
+  playerWrap.style.display = 'none';
+
+  // Stop any existing HLS instance
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+
+  const dlUrl = data.download_url || data.dlink;
+  const m3u8  = data.m3u8_url;
+
+  if (dlUrl) {
+    // ── Download button ──
+    const dlBtn = document.createElement('a');
+    dlBtn.className = 'btn-dl';
+    dlBtn.href = '/api/stream?url=' + encodeURIComponent(dlUrl);
+    dlBtn.download = data.filename || 'download';
+    dlBtn.innerHTML = '⬇ Download';
+    actions.appendChild(dlBtn);
+
+    // ── Watch Online button (videos only) ──
+    if (data.isVideo) {
+      const streamBtn = document.createElement('button');
+      streamBtn.className = 'btn-stream';
+      streamBtn.textContent = '▶ Watch Online';
+      // Prefer M3U8 stream, fallback to direct proxy
+      const streamSrc = m3u8
+        ? '/api/stream?type=m3u8&url=' + encodeURIComponent(m3u8)
+        : '/api/stream?url=' + encodeURIComponent(dlUrl);
+      streamBtn.onclick = () => streamVideo(streamSrc, !!m3u8, streamBtn);
+      actions.appendChild(streamBtn);
+    }
+  } else {
+    actions.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:4px 0">⚠️ Direct link unavailable. This file may require TeraBox login.</p>';
+  }
+
+  resultCard.style.display = 'block';
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function streamVideo(src, isM3U8, btn) {
+  const playerWrap = document.getElementById('playerWrap');
+  const video = document.getElementById('videoEl');
+
+  // Toggle off
+  if (playerWrap.style.display === 'block') {
+    playerWrap.style.display = 'none';
+    video.pause();
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    btn.textContent = '▶ Watch Online';
+    return;
+  }
+
+  btn.textContent = '⏳ Loading...';
+  playerWrap.style.display = 'block';
+
+  if (isM3U8 && typeof Hls !== 'undefined' && Hls.isSupported()) {
+    // Use HLS.js for M3U8 streams
+    hlsInstance = new Hls({ enableWorker: false });
+    hlsInstance.loadSource(src);
+    hlsInstance.attachMedia(video);
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(() => {});
+      btn.textContent = '■ Hide Player';
+    });
+    hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        btn.textContent = '▶ Watch Online';
+        playerWrap.style.display = 'none';
+        showError('Stream error. Try downloading instead.');
+      }
+    });
+  } else {
+    // Native video for direct MP4
+    video.src = src;
+    video.oncanplay = () => { btn.textContent = '■ Hide Player'; };
+    video.onerror  = () => { btn.textContent = '▶ Watch Online'; showError('Playback error. Try downloading.'); };
+    video.play().catch(() => {});
+    btn.textContent = '■ Hide Player';
+  }
+}
+</script>
+</body>
+</html>
